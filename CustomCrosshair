@@ -1,0 +1,44 @@
+-- CustomCrosshair (LocalScript in StarterPlayerScripts)
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+local RunService = game:GetService("RunService")
+
+local player = Players.LocalPlayer
+local mouse = player:GetMouse()
+
+-- Hide the default system mouse cursor
+UserInputService.MouseIconEnabled = false
+
+-- Create a ScreenGui for the crosshair
+local playerGui = player:WaitForChild("PlayerGui")
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "CrosshairGui"
+screenGui.ResetOnSpawn = false
+screenGui.IgnoreGuiInset = true
+screenGui.Parent = playerGui
+
+-- Create the crosshair dot
+local dot = Instance.new("Frame")
+dot.Name = "CrosshairDot"
+dot.Size = UDim2.new(0, 6, 0, 6) -- Size of the dot (in pixels)
+dot.AnchorPoint = Vector2.new(0.5, 0.5)
+dot.BackgroundColor3 = Color3.fromRGB(255, 255, 255) -- Dot color
+dot.BorderSizePixel = 0
+dot.Parent = screenGui
+
+-- Make the dot circular
+local uiCorner = Instance.new("UICorner")
+uiCorner.CornerRadius = UDim.new(1, 0)
+uiCorner.Parent = dot
+
+-- Add a subtle black outline/stroke to make it pop against bright backgrounds
+local uiStroke = Instance.new("UIStroke")
+uiStroke.Color = Color3.fromRGB(0, 0, 0)
+uiStroke.Thickness = 1
+uiStroke.Parent = dot
+
+-- Update crosshair position to track the center / mouse position smoothly
+RunService.RenderStepped:Connect(function()
+	local mousePos = UserInputService:GetMouseLocation()
+	dot.Position = UDim2.new(0, mousePos.X, 0, mousePos.Y)
+end)
