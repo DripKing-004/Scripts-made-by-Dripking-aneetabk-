@@ -1,0 +1,189 @@
+-- DonationClient.client.lua
+-- Place this LocalScript in StarterGui.
+
+local Players = game:GetService("Players")
+local MarketplaceService = game:GetService("MarketplaceService")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local TweenService = game:GetService("TweenService")
+local TextChatService = game:GetService("TextChatService")
+
+local player = Players.LocalPlayer
+
+-- Replace these with your Developer Product IDs.
+local PRODUCT_IDS = {
+	[10] = 0,
+	[100] = 0,
+	[1000] = 0,
+	[10000] = 0,
+}
+
+local announcementEvent = ReplicatedStorage:WaitForChild("DonationAnnouncement")
+
+-- Build the GUI.
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "DonationShop"
+screenGui.ResetOnSpawn = false
+screenGui.IgnoreGuiInset = true
+screenGui.Parent = player:WaitForChild("PlayerGui")
+
+local openButton = Instance.new("TextButton")
+openButton.Name = "OpenDonationShop"
+openButton.Size = UDim2.fromOffset(150, 42)
+openButton.Position = UDim2.new(0, 20, 1, -62)
+openButton.BackgroundColor3 = Color3.fromRGB(105, 25, 35)
+openButton.TextColor3 = Color3.fromRGB(255, 238, 230)
+openButton.Text = "SUPPORT"
+openButton.TextSize = 16
+openButton.Font = Enum.Font.GothamBold
+openButton.Parent = screenGui
+
+local openCorner = Instance.new("UICorner")
+openCorner.CornerRadius = UDim.new(0, 10)
+openCorner.Parent = openButton
+
+local overlay = Instance.new("Frame")
+overlay.Name = "Overlay"
+overlay.Size = UDim2.fromScale(1, 1)
+overlay.BackgroundColor3 = Color3.new(0, 0, 0)
+overlay.BackgroundTransparency = 0.35
+overlay.Visible = false
+overlay.Parent = screenGui
+
+local panel = Instance.new("Frame")
+panel.Name = "ShopPanel"
+panel.AnchorPoint = Vector2.new(0.5, 0.5)
+panel.Position = UDim2.fromScale(0.5, 0.5)
+panel.Size = UDim2.fromOffset(380, 390)
+panel.BackgroundColor3 = Color3.fromRGB(20, 19, 24)
+panel.Parent = overlay
+
+local panelCorner = Instance.new("UICorner")
+panelCorner.CornerRadius = UDim.new(0, 14)
+panelCorner.Parent = panel
+
+local panelStroke = Instance.new("UIStroke")
+panelStroke.Color = Color3.fromRGB(125, 42, 52)
+panelStroke.Thickness = 1.5
+panelStroke.Parent = panel
+
+local title = Instance.new("TextLabel")
+title.BackgroundTransparency = 1
+title.Position = UDim2.new(0, 22, 0, 18)
+title.Size = UDim2.new(1, -70, 0, 38)
+title.Font = Enum.Font.GothamBold
+title.Text = "SUPPORT THE GAME"
+title.TextColor3 = Color3.fromRGB(245, 230, 225)
+title.TextSize = 21
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.Parent = panel
+
+local closeButton = Instance.new("TextButton")
+closeButton.Name = "Close"
+closeButton.Position = UDim2.new(1, -48, 0, 16)
+closeButton.Size = UDim2.fromOffset(32, 32)
+closeButton.BackgroundColor3 = Color3.fromRGB(55, 38, 43)
+closeButton.Text = "×"
+closeButton.TextColor3 = Color3.fromRGB(255, 235, 230)
+closeButton.TextSize = 24
+closeButton.Font = Enum.Font.Gotham
+closeButton.Parent = panel
+
+local closeCorner = Instance.new("UICorner")
+closeCorner.CornerRadius = UDim.new(0, 8)
+closeCorner.Parent = closeButton
+
+local description = Instance.new("TextLabel")
+description.BackgroundTransparency = 1
+description.Position = UDim2.new(0, 22, 0, 62)
+description.Size = UDim2.new(1, -44, 0, 42)
+description.Font = Enum.Font.Gotham
+description.Text = "Your support helps us keep the nightmare alive."
+description.TextColor3 = Color3.fromRGB(175, 166, 170)
+description.TextSize = 14
+description.TextWrapped = true
+description.TextXAlignment = Enum.TextXAlignment.Left
+description.Parent = panel
+
+local buttonList = Instance.new("Frame")
+buttonList.BackgroundTransparency = 1
+buttonList.Position = UDim2.new(0, 22, 0, 120)
+buttonList.Size = UDim2.new(1, -44, 0, 230)
+buttonList.Parent = panel
+
+local listLayout = Instance.new("UIListLayout")
+listLayout.Padding = UDim.new(0, 10)
+listLayout.SortOrder = Enum.SortOrder.LayoutOrder
+listLayout.Parent = buttonList
+
+local tiers = { 10, 100, 1000, 10000 }
+
+for order, amount in ipairs(tiers) do
+	local productId = PRODUCT_IDS[amount]
+
+	local button = Instance.new("TextButton")
+	button.Name = "Donate" .. tostring(amount)
+	button.LayoutOrder = order
+	button.Size = UDim2.new(1, 0, 0, 48)
+	button.BackgroundColor3 = Color3.fromRGB(86, 32, 42)
+	button.TextColor3 = Color3.fromRGB(255, 239, 231)
+	button.TextSize = 16
+	button.Font = Enum.Font.GothamSemibold
+	button.Parent = buttonList
+
+	local corner = Instance.new("UICorner")
+	corner.CornerRadius = UDim.new(0, 9)
+	corner.Parent = button
+
+	if typeof(productId) ~= "number" or productId <= 0 then
+		button.Text = string.format("%s Robux  •  Set Product ID", amount)
+		button.AutoButtonColor = false
+		button.BackgroundColor3 = Color3.fromRGB(53, 47, 50)
+		button.TextColor3 = Color3.fromRGB(180, 170, 172)
+	else
+		button.Text = string.format("Donate %s Robux", amount)
+
+		button.Activated:Connect(function()
+			MarketplaceService:PromptProductPurchase(player, productId)
+		end)
+	end
+end
+
+local function setShopVisible(visible)
+	if visible then
+		overlay.Visible = true
+		panel.Position = UDim2.fromScale(0.5, 0.53)
+		TweenService:Create(
+			panel,
+			TweenInfo.new(0.2, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+			{ Position = UDim2.fromScale(0.5, 0.5) }
+		):Play()
+	else
+		overlay.Visible = false
+	end
+end
+
+openButton.Activated:Connect(function()
+	setShopVisible(true)
+end)
+
+closeButton.Activated:Connect(function()
+	setShopVisible(false)
+end)
+
+-- The server fires this event after a receipt is processed.
+-- This notification is informational; the server handles the receipt.
+announcementEvent.OnClientEvent:Connect(function(message)
+	if typeof(message) ~= "string" then
+		return
+	end
+
+	local textChannels = TextChatService:FindFirstChild("TextChannels")
+	local generalChannel = textChannels and textChannels:FindFirstChild("RBXGeneral")
+
+	if generalChannel then
+		generalChannel:DisplaySystemMessage(message)
+	else
+		-- Fallback for experiences without the default TextChatService channel.
+		warn(message)
+	end
+end)
