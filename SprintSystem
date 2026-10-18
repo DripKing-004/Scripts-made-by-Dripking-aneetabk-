@@ -1,0 +1,121 @@
+local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
+
+local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+player.CharacterAdded:Connect(function(newChar)
+	character = newChar
+end)
+
+local NORMAL_SPEED = 16
+local SPRINT_SPEED = 48
+local MAX_SPRINT_TIME = 30 -- INCREASED TO 30 SECONDS
+local COOLDOWN_TIME = 10
+
+local sprinting = false
+local onCooldown = false
+local sprintTimeLeft = MAX_SPRINT_TIME
+local cooldownTimeLeft = 0
+
+-- CREATE UI (Bottom center, above inventory)
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "SprintGui"
+screenGui.ResetOnSpawn = false
+screenGui.Parent = player:WaitForChild("PlayerGui")
+
+-- Background container (invisible wrapper to hold size)
+local barBackground = Instance.new("Frame")
+barBackground.Name = "BarBackground"
+barBackground.Size = UDim2.new(0, 200, 0, 10)
+barBackground.Position = UDim2.new(0.5, -100, 1, -85)
+barBackground.BackgroundTransparency = 1
+barBackground.Parent = screenGui
+
+-- White filled bar
+local fillBar = Instance.new("Frame")
+fillBar.Name = "FillBar"
+fillBar.Size = UDim2.new(1, 0, 1, 0)
+fillBar.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+fillBar.BorderSizePixel = 0
+fillBar.Visible = false
+fillBar.Parent = barBackground
+
+local corner = Instance.new("UICorner")
+corner.CornerRadius = UDim.new(1, 0)
+corner.Parent = fillBar
+
+local function updateUI()
+	if sprinting then
+		fillBar.Visible = true
+		fillBar.Size = UDim2.new(sprintTimeLeft / MAX_SPRINT_TIME, 0, 1, 0)
+	elseif onCooldown then
+		fillBar.Visible = true
+		fillBar.Size = UDim2.new(1 - (cooldownTimeLeft / COOLDOWN_TIME), 0, 1, 0)
+	else
+		fillBar.Visible = false
+	end
+end
+
+-- Listen for Shift key
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+	if gameProcessed then return end
+
+	if input.KeyCode == Enum.KeyCode.LeftShift or input.KeyCode == Enum.KeyCode.RightShift then
+		if not sprinting and not onCooldown then
+			startSprint()
+		end
+	end
+end)
+
+UserInputService.InputEnded:Connect(function(input)
+	if input.KeyCode == Enum.KeyCode.LeftShift or input.KeyCode == Enum.KeyCode.RightShift then
+		if sprinting then
+			stopSprint()
+		end
+	end
+end)
+
+function startSprint()
+	local humanoid = character:FindFirstChildOfClass("Humanoid")
+	if humanoid and not onCooldown then
+		sprinting = true
+		humanoid.WalkSpeed = SPRINT_SPEED
+
+		task.spawn(function()
+			while sprinting and sprintTimeLeft > 0 do
+				task.wait(1)
+				sprintTimeLeft -= 1
+				updateUI()
+
+				if sprintTimeLeft <= 0 then
+					stopSprint()
+				end
+			end
+		end)
+	end
+end
+
+function stopSprint()
+	if not sprinting then return end
+	sprinting = false
+
+	local humanoid = character:FindFirstChildOfClass("Humanoid")
+	if humanoid then
+		humanoid.WalkSpeed = NORMAL_SPEED
+	end
+
+	onCooldown = true
+	cooldownTimeLeft = COOLDOWN_TIME
+	updateUI()
+
+	task.spawn(function()
+		while cooldownTimeLeft > 0 do
+			task.wait(1)
+			cooldownTimeLeft -= 1
+			updateUI()
+		end
+		onCooldown = false
+		sprintTimeLeft = MAX_SPRINT_TIME
+		updateUI()
+	end)
+end
